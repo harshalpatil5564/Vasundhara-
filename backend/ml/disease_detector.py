@@ -1,11 +1,20 @@
-import cv2
-import numpy as np
-from PIL import Image
 import io
 import base64
 import logging
-
 logger = logging.getLogger(__name__)
+
+# Try to import heavy image libs; if unavailable, provide a graceful fallback
+try:
+    import cv2
+    import numpy as np
+    from PIL import Image
+    _IMAGE_LIBS_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Optional image libraries not available: {e}")
+    cv2 = None
+    np = None
+    Image = None
+    _IMAGE_LIBS_AVAILABLE = False
 
 DISEASE_PATTERNS = {
     "leaf_spot": {
@@ -43,10 +52,11 @@ TREATMENT_RECOMMENDATIONS = {
     "healthy": "Continue regular maintenance. Monitor for signs of disease. Apply preventive sprays if needed."
 }
 
-class DiseaseDetector:
-    def __init__(self):
-        self.disease_patterns = DISEASE_PATTERNS
-        self.treatments = TREATMENT_RECOMMENDATIONS
+if _IMAGE_LIBS_AVAILABLE:
+    class DiseaseDetector:
+        def __init__(self):
+            self.disease_patterns = DISEASE_PATTERNS
+            self.treatments = TREATMENT_RECOMMENDATIONS
     
     def preprocess_image(self, image_base64: str) -> np.ndarray:
         """Preprocess base64 image for analysis"""
@@ -130,7 +140,7 @@ class DiseaseDetector:
             "recommendations": self._get_recommendations(disease_name, severity)
         }
     
-    def _get_recommendations(self, disease: str, severity: str) -> list:
+        def _get_recommendations(self, disease: str, severity: str) -> list:
         """Get specific recommendations based on disease and severity"""
         base_recommendations = {
             "leaf_spot": [
@@ -176,3 +186,10 @@ class DiseaseDetector:
             recommendations = [f"PRIORITY: {r}" for r in recommendations[:3]] + recommendations[3:]
         
         return recommendations
+else:
+    # Fallback detector when image libraries are missing
+    class DiseaseDetector:
+        def __init__(self):
+            raise RuntimeError(
+                "Image processing libraries missing: please install 'opencv-python' and 'Pillow' in the backend environment."
+            )

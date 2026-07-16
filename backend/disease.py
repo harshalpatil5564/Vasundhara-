@@ -15,7 +15,18 @@ from ml.disease_detector import DiseaseDetector
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-detector = DiseaseDetector()
+# Lazy instantiate detector to avoid import-time crashes when optional libs missing
+detector = None
+
+def get_detector():
+    global detector
+    if detector is None:
+        try:
+            detector = DiseaseDetector()
+        except Exception as e:
+            logger.error(f"DiseaseDetector initialization failed: {e}")
+            raise
+    return detector
 
 
 # =========================================================
@@ -31,7 +42,14 @@ async def detect_disease(
     Accepts base64 encoded image.
     """
     try:
-        prediction = detector.predict(request.image_base64)
+        try:
+            det = get_detector()
+        except Exception:
+            raise HTTPException(status_code=500, detail=(
+                "Server missing image-processing dependencies. Install 'opencv-python' and 'Pillow' in the backend environment."
+            ))
+
+        prediction = det.predict(request.image_base64)
 
         return {
             "disease": prediction.get("disease", "Unknown"),
@@ -61,7 +79,14 @@ async def detect_disease_detailed(
     Get detailed disease detection with optional DB save.
     """
     try:
-        prediction = detector.predict(request.image_base64)
+        try:
+            det = get_detector()
+        except Exception:
+            raise HTTPException(status_code=500, detail=(
+                "Server missing image-processing dependencies. Install 'opencv-python' and 'Pillow' in the backend environment."
+            ))
+
+        prediction = det.predict(request.image_base64)
 
         # Default recommendations
         recommendations = [
