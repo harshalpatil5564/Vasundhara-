@@ -244,30 +244,54 @@
     .results-grid{ grid-template-columns:1fr; text-align:center; }
     .nav-menu{ display:none; }
   }
+
+  /* ---------- Animations ---------- */
+  @keyframes floaty { 0% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(-2deg); } 100% { transform: translateY(0) rotate(0deg); } }
+  .hero-blob { animation: floaty 6s ease-in-out infinite; }
+
+  .reveal-init{ opacity:0; transform:translateY(12px); transition:opacity .6s ease, transform .6s cubic-bezier(.2,.9,.3,1); }
+  .reveal-show{ opacity:1; transform:none; }
+
+  .upload-area:hover .upload-icon{ transform:translateY(-6px) scale(1.06); transition:transform .28s ease; }
+
+  /* quick pulse when results appear */
+  .results-card.pop { animation: pop .6s ease; }
+  @keyframes pop { 0%{ transform:scale(.98); opacity:0 } 60%{ transform:scale(1.02); opacity:1 } 100%{ transform:scale(1); opacity:1 } }
 </style>
 </head>
 <body>
 
 <div class="navbar">
-  <div class="container">
-    <div class="logo">
-      <svg class="icon-leaf" viewBox="0 0 24 24" aria-hidden="true"><path class="body" d="M12 21C12 21 4 16 4 9C4 5 7 2 12 2C17 2 20 5 20 9C20 16 12 21 12 21Z"/><path class="vein" d="M12 4 L12 19"/></svg>
-      Maharashtra Agriculture
-    </div>
-    <nav class="nav-menu">
-      <a href="index.html">Dashboard</a>
-      <a href="market.html">Market Prices</a>
-      <a href="disease.html" class="active">Disease Detection</a>
-      <a href="predictions.html">Predictions</a>
-    </nav>
-    <div class="auth-menu">
-      <button onclick="openLoginModal()" id="loginBtn" class="btn btn-secondary">Login</button>
-      <button onclick="logout()" id="logoutBtn" class="btn btn-ghost" style="display:none;">Logout</button>
-    </div>
-  </div>
-</div>
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a class="logo" href="index.html">
+        <div class="logo-icon">🌾</div>
+        <div class="logo-text">
+          <h2>Maharashtra Agriculture</h2>
+          <p>Smart Farming Portal</p>
+        </div>
+      </a>
 
-<div class="hero-section">
+      <nav class="nav-links">
+        <a href="index.html">🏠 Dashboard</a>
+        <a href="market.html">📈 Market</a>
+        <a href="weather.html">🌦 Weather</a>
+        <a href="disease.html" class="active">🌿 Disease</a>
+        <a href="predictions.html">🔮 Predictions</a>
+      </nav>
+
+      <div class="nav-right">
+        <select class="lang-select" id="languageSelect" onchange="changePageLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="mr">मराठी</option>
+          <option value="hi">हिंदी</option>
+        </select>
+        <div id="userArea">
+          <button onclick="openLoginModal()" id="loginBtn" class="btn btn-primary">👤 Login</button>
+        </div>
+      </div>
+    </div>
+  </header>
   <div class="hero-blob b1"></div>
   <div class="hero-blob b2"></div>
   <div class="container hero-content">
@@ -277,6 +301,10 @@
     </span>
     <h1>Spot it <em>before</em> it spreads.</h1>
     <p class="lede">Upload a photo of an affected leaf and get a crop-specific diagnosis, severity reading, and treatment plan in seconds.</p>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn btn-primary" onclick="document.getElementById('imageInput').click()">📷 Upload Photo</button>
+      <a href="predictions.html" class="btn btn-ghost">🔮 See Predictions</a>
+    </div>
     <div class="stat-row">
       <span class="stat-pill"><b>11</b> crops covered</span>
       <span class="stat-pill"><b>5</b> Maharashtra districts</span>
@@ -757,35 +785,62 @@
     window.scrollTo({ top:0, behavior:'smooth' });
   };
 
-  /* ---------------- Auth (demo only, in-memory) ---------------- */
-  window.openLoginModal = function(){
-    document.getElementById('loginModal').classList.add('open');
-  };
-  window.closeLoginModal = function(){
-    document.getElementById('loginModal').classList.remove('open');
-  };
+  /* ---------------- Auth (replaced by Firebase) ---------------- */
+  // This app now uses Firebase Google Sign-In. To configure, copy
+  // js/firebase-config.example.js -> js/firebase-config.js and fill values.
+  // auth.js will expose `openLoginModal()` and `logout()` and manage the UI.
+  try{
+    // safely remove demo listeners if present
+    var demoForm = document.getElementById('authForm');
+    if(demoForm && demoForm._demoListener){ demoForm.removeEventListener('submit', demoForm._demoListener); }
+  }catch(e){}
 
-  document.getElementById('authForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    var email = document.getElementById('authEmail').value;
-    loggedInEmail = email;
-    document.getElementById('loginBtn').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = 'inline-block';
-    closeLoginModal();
-    showToast('Welcome back, ' + email.split('@')[0] + '!');
-    document.getElementById('authForm').reset();
+})();
+</script>
+<script src="js/firebase-config.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+
+<script>
+// Progressive reveal + small UI animations
+(function(){
+  const sel = '.card, .hero-content, .preview-box, .results-card, .stat-pill';
+  const els = Array.from(document.querySelectorAll(sel));
+  els.forEach(el=>{ el.classList.add('reveal-init'); });
+
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('reveal-show');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  els.forEach(e=> io.observe(e));
+
+  // animate stat pills numbers
+  const statEls = document.querySelectorAll('.stat-pill b');
+  statEls.forEach(el=>{
+    const target = parseInt(el.textContent,10) || 0;
+    el.textContent = '0';
+    let v=0; const dur=900; const step = Math.max(1, Math.round(target/(dur/30)));
+    const t = setInterval(()=>{ v+=step; if(v>=target){ el.textContent=String(target); clearInterval(t); } else el.textContent=String(v); }, 30);
   });
 
-  window.logout = function(){
-    loggedInEmail = null;
-    document.getElementById('loginBtn').style.display = 'inline-block';
-    document.getElementById('logoutBtn').style.display = 'none';
-    showToast('Logged out.');
-  };
-
-  document.getElementById('loginModal').addEventListener('click', function(e){
-    if (e.target.id === 'loginModal') closeLoginModal();
+  // when results shown, add pop and ensure gauge animates (gauge handled elsewhere)
+  const resultsContent = document.getElementById('resultsContent');
+  const ro = new MutationObserver(()=>{
+    if(resultsContent && resultsContent.style.display !== 'none'){
+      resultsContent.classList.add('pop');
+      setTimeout(()=> resultsContent.classList.remove('pop'), 900);
+    }
   });
+  if(resultsContent) ro.observe(resultsContent, { attributes:true, attributeFilter:['style'] });
+
+  // preview image fade-in
+  const img = document.getElementById('imagePreview');
+  if(img){ img.style.opacity=0; img.style.transition='opacity .45s ease'; img.addEventListener('load', ()=>{ requestAnimationFrame(()=> img.style.opacity=1); }); }
 
 })();
 </script>

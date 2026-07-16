@@ -38,18 +38,8 @@ async function updateAuthUI() {
 
 async function handleLogin(e) {
     e.preventDefault();
-
-    const email = document.getElementById('authEmail').value;
-    const password = document.getElementById('authPassword').value;
-
-    try {
-        await login(email, password);
-        closeLoginModal();
-        updateAuthUI();
-        alert('Login successful');
-    } catch (error) {
-        alert('Login failed: ' + error.message);
-    }
+    // Use Firebase Google Sign-In flow
+    if (window.openLoginModal) window.openLoginModal();
 }
 
 async function updatePredictions() {

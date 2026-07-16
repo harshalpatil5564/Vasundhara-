@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Advanced Weather — Maharashtra Agriculture</title>
+<link rel="stylesheet" href="css/style.css" />
+<style>
+:root{--accent:#2f6b3f;--muted:#5f6d63;--card:#fff;--glass:rgba(255,255,255,.12);--radius:16px}
+body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background:linear-gradient(180deg,#f0fbf6,#ecfff7);color:#123}
+.container{width:min(1200px,calc(100% - 28px));margin:28px auto}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.header h1{margin:0;font-size:1.4rem;color:var(--accent)}
+.header .controls{display:flex;gap:8px;align-items:center}
+.card{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 8px 30px rgba(18,40,24,.06);border:1px solid rgba(0,0,0,.04)}
+.grid{display:grid;grid-template-columns:1fr 420px;gap:18px;margin-top:18px}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.metrics{display:flex;gap:12px;flex-wrap:wrap}
+.metric{flex:1;min-width:140px;background:linear-gradient(180deg,#fff,#f9fff7);padding:12px;border-radius:12px;border:1px solid rgba(47,107,63,.06)}
+.metric h4{margin:0;font-size:0.9rem;color:var(--muted)}
+.metric p{margin:6px 0 0;font-weight:800;font-size:1.25rem}
+.small{font-size:0.85rem;color:#666}
+#forecastList{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:12px}
+.forecastCard{background:#fff;padding:10px;border-radius:10px;text-align:center;border:1px solid rgba(0,0,0,.04)}
+.unit-toggle{display:inline-flex;background:var(--glass);border-radius:999px;padding:4px;border:1px solid rgba(0,0,0,.04)}
+.unit-toggle button{border:none;background:transparent;padding:6px 10px;border-radius:999px;cursor:pointer}
+.unit-toggle button.active{background:var(--accent);color:#fff}
+.legend{display:flex;gap:8px;align-items:center}
+.chart-wrap{height:260px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Advanced Weather Dashboard — Maharashtra</h1>
+    <div class="controls">
+      <div class="unit-toggle" role="tablist" aria-label="Units">
+        <button id="unitC" class="active">°C</button>
+        <button id="unitF">°F</button>
+      </div>
+      <select id="districtSelectAdv" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,.06)">
+      </select>
+      <button id="btnFetch" class="btn btn-primary">Refresh</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div class="small">Location</div>
+            <h2 id="locName">Pune</h2>
+            <div class="small" id="locUpdated">--</div>
+          </div>
+          <div style="text-align:right">
+            <div id="bigTemp" style="font-size:48px;font-weight:900;color:var(--accent)">--</div>
+            <div id="bigCond" class="small">--</div>
+          </div>
+        </div>
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(0,0,0,.04)" />
+        <div class="metrics" id="metricsRow">
+          <div class="metric"><h4>Humidity</h4><p id="mHumidity">--</p></div>
+          <div class="metric"><h4>Wind</h4><p id="mWind">--</p></div>
+          <div class="metric"><h4>Rain (1h)</h4><p id="mRain">--</p></div>
+          <div class="metric"><h4>Feels</h4><p id="mFeels">--</p></div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="small">Temperature trend (5 days)</div>
+          <div class="card chart-wrap"><canvas id="tempChart"></canvas></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">5 Day Forecast</h3>
+          <div class="legend small">Icons are illustrative</div>
+        </div>
+        <div id="forecastList"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3 style="margin:0 0 10px 0">Quick Actions</h3>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-secondary" id="btnDetect">Auto-detect location</button>
+          <a class="btn btn-light" href="market.html">Open Market Prices</a>
+          <a class="btn btn-light" href="disease.html">Open Disease Scanner</a>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="card">
+        <h3 style="margin:0 0 8px 0">Notes</h3>
+        <p class="small">This advanced view includes a temperature trend chart, unit toggle and quick actions for farmers.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const DISTRICT_COORDS = JSON.parse(JSON.stringify({
+    Pune: { lat: 18.5204, lon: 73.8567 },
+    Nashik: { lat: 19.9975, lon: 73.7898 },
+    Nagpur: { lat: 21.1458, lon: 79.0882 },
+    Kolhapur: { lat: 16.7050, lon: 74.2433 },
+    Sangli: { lat: 16.8524, lon: 74.5815 },
+    Satara: { lat: 17.6805, lon: 73.9933 },
+    Solapur: { lat: 17.6599, lon: 75.9064 },
+    Latur: { lat: 18.4088, lon: 76.5604 },
+    Nanded: { lat: 19.1383, lon: 77.3210 },
+    Ahilyanagar: { lat: 19.0952, lon: 74.7480 },
+    "Chhatrapati Sambhajinagar": { lat: 19.8762, lon: 75.3433 },
+    Jalgaon: { lat: 21.0077, lon: 75.5626 },
+    Amravati: { lat: 20.9374, lon: 77.7796 },
+    Wardha: { lat: 20.7453, lon: 78.6022 },
+    Yavatmal: { lat: 20.3888, lon: 78.1204 },
+    Akola: { lat: 20.7076, lon: 77.0028 },
+    Buldhana: { lat: 20.5293, lon: 76.1840 },
+    Nandurbar: { lat: 21.3706, lon: 74.2400 },
+    Dhule: { lat: 20.9042, lon: 74.7749 },
+    Parbhani: { lat: 19.2683, lon: 76.7708 },
+    Osmanabad: { lat: 18.1860, lon: 76.0417 }
+}));
+const API_KEY = 'b9a90af29fb656c2da4f05f9275bb548';
+
+// UI refs
+const districtSelect = document.getElementById('districtSelectAdv');
+const btnFetch = document.getElementById('btnFetch');
+const btnDetect = document.getElementById('btnDetect');
+const unitC = document.getElementById('unitC');
+const unitF = document.getElementById('unitF');
+let currentUnit = 'C';
+
+// populate districts
+Object.keys(DISTRICT_COORDS).forEach(d=>{
+  const o=document.createElement('option'); o.value=d; o.textContent=d; districtSelect.appendChild(o);
+});
+
+// chart
+let tempChart = null;
+function createChart(labels,dataMin,dataMax){
+  const ctx = document.getElementById('tempChart').getContext('2d');
+  if(tempChart) tempChart.destroy();
+  tempChart = new Chart(ctx,{
+    type:'line',data:{labels, datasets:[{label:'Max °'+currentUnit, data:dataMax, borderColor:'#2f6b3f', backgroundColor:'rgba(47,107,63,0.08)', tension:0.3, fill:true},{label:'Min °'+currentUnit,data:dataMin,borderColor:'#79c98b',backgroundColor:'rgba(121,201,139,0.06)',tension:0.3,fill:true}]},options:{responsive:true,plugins:{legend:{position:'top'}}}
+  });
+}
+
+function toUnit(valC){ return currentUnit==='C' ? valC : (valC*9/5)+32 }
+
+function getWeatherEmoji(main){ if(main==='Clouds') return '☁️'; if(main==='Rain') return '🌧'; if(main==='Thunderstorm') return '⛈'; if(main==='Snow') return '❄️'; if(main==='Mist'||main==='Fog') return '🌫️'; return '☀️' }
+
+async function fetchCurrent(lat,lon){ const res=await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`); if(!res.ok) throw new Error('current failed'); return res.json() }
+async function fetchForecast(lat,lon){ const res=await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`); if(!res.ok) throw new Error('forecast failed'); return res.json() }
+
+function groupByDay(list){ const byDay={}; list.forEach(i=>{const date=i.dt_txt.split(' ')[0]; if(!byDay[date]) byDay[date]=[]; byDay[date].push(i)}); return Object.entries(byDay).slice(0,5).map(([date,items])=>{const temps=items.map(x=>x.main.temp); return {date, min:Math.min(...temps), max:Math.max(...temps), main:items[0].weather[0].main, desc:items[0].weather[0].description}})}
+
+function renderMain(current, name){ document.getElementById('locName').textContent=name; document.getElementById('locUpdated').textContent='Updated: '+new Date().toLocaleString(); document.getElementById('bigTemp').textContent = Math.round(toUnit(current.main.temp)) + '°'+currentUnit; document.getElementById('bigCond').textContent = current.weather[0].description + ' ' + getWeatherEmoji(current.weather[0].main); document.getElementById('mHumidity').textContent = current.main.humidity + '%'; document.getElementById('mWind').textContent = current.wind.speed + ' m/s'; document.getElementById('mRain').textContent = (current.rain && current.rain['1h']) ? current.rain['1h']+' mm' : '0 mm'; document.getElementById('mFeels').textContent = Math.round(toUnit(current.main.feels_like))+'°'+currentUnit }
+
+function renderForecastCards(days){ const container=document.getElementById('forecastList'); container.innerHTML=''; days.forEach(d=>{ const el=document.createElement('div'); el.className='forecastCard'; el.innerHTML = `<div style="font-weight:800">${new Date(d.date).toLocaleDateString(undefined,{weekday:'short',day:'numeric'})}</div><div style="font-size:22px;margin:6px">${getWeatherEmoji(d.main)}</div><div style="font-weight:800">${Math.round(toUnit(d.max))}° / ${Math.round(toUnit(d.min))}°</div><div class="small" style="margin-top:6px">${d.desc}</div>`; container.appendChild(el) }) }
+
+async function loadForDistrict(name){ const coords = DISTRICT_COORDS[name]; if(!coords) return; try{ const [cur,fore] = await Promise.all([fetchCurrent(coords.lat,coords.lon), fetchForecast(coords.lat,coords.lon)]); renderMain(cur,name); const days = groupByDay(fore.list); renderForecastCards(days); createChart(days.map(d=>new Date(d.date).toLocaleDateString(undefined,{weekday:'short'})), days.map(d=>Math.round(toUnit(d.min))), days.map(d=>Math.round(toUnit(d.max)))); }catch(e){ console.error(e); alert('Failed to load weather') } }
+
+btnFetch.addEventListener('click', ()=> loadForDistrict(districtSelect.value));
+btnDetect.addEventListener('click', ()=>{ if(!navigator.geolocation){alert('No geolocation'); return;} navigator.geolocation.getCurrentPosition(async (p)=>{ try{ const [cur,fore]=await Promise.all([fetchCurrent(p.coords.latitude,p.coords.longitude), fetchForecast(p.coords.latitude,p.coords.longitude)]); renderMain(cur,'Your Location'); const days = groupByDay(fore.list); renderForecastCards(days); createChart(days.map(d=>new Date(d.date).toLocaleDateString(undefined,{weekday:'short'})), days.map(d=>Math.round(toUnit(d.min))), days.map(d=>Math.round(toUnit(d.max)))); }catch(e){console.error(e);alert('Auto-detect failed')} }, (err)=>alert('Location denied')) })
+
+unitC.addEventListener('click', ()=>{ currentUnit='C'; unitC.classList.add('active'); unitF.classList.remove('active'); loadForDistrict(districtSelect.value) })
+unitF.addEventListener('click', ()=>{ currentUnit='F'; unitF.classList.add('active'); unitC.classList.remove('active'); loadForDistrict(districtSelect.value) })
+
+// init
+districtSelect.value='Pune'; loadForDistrict('Pune');
+</script>
+
+<!-- keep auth + nav scripts consistent -->
+<script src="js/firebase-config.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+</body>
+</html>

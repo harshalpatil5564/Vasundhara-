@@ -1,7 +1,28 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import os
+import logging
+
+# Optional Firebase Admin for verifying ID tokens
+FIREBASE_AVAILABLE = False
+try:
+    import firebase_admin
+    from firebase_admin import auth as firebase_auth, credentials
+    FIREBASE_AVAILABLE = True
+    # Initialize app if not already initialized. Uses ADC or service account if provided.
+    try:
+        if not firebase_admin._apps:
+            if os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
+                cred = credentials.ApplicationDefault()
+                firebase_admin.initialize_app(cred)
+            else:
+                # Try to initialize with no args (uses ADC). If that fails, leave uninitialized.
+                firebase_admin.initialize_app()
+    except Exception as e:
+        logging.warning(f"Firebase admin initialization skipped: {e}")
+except Exception:
+    FIREBASE_AVAILABLE = False
 
 from database import Base, engine
 from disease import router as disease_router
@@ -33,6 +54,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# -------------------- Authentication Helpers --------------------
+def verify_firebase_token(authorization: str = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    id_token = authorization.split(" ", 1)[1]
+
+    if not FIREBASE_AVAILABLE:
+        raise HTTPException(
+            status_code=500,
+            detail=("Firebase Admin SDK not available on server. Install `firebase-admin` and "
+                    "provide service account credentials via GOOGLE_APPLICATION_CREDENTIALS or initialize the SDK."))
+
+    try:
+        decoded = firebase_auth.verify_id_token(id_token)
+        return decoded
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 # =========================================================
 # Load Profit Prediction Model
@@ -81,7 +123,7 @@ def home():
 # Profit Prediction Route
 # =========================================================
 @app.post("/api/predict", response_model=ProfitPredictionResponse)
-def predict_profit(data: ProfitPredictionRequest):
+def predict_profit(data: ProfitPredictionRequest, user=Depends(verify_firebase_token)):
     try:
         if model is None:
             raise HTTPException(status_code=500, detail="Profit model not loaded")
@@ -104,7 +146,7 @@ def predict_profit(data: ProfitPredictionRequest):
 # Crop Recommendation Route
 # =========================================================
 @app.post("/api/crop_recommendation", response_model=CropRecommendationResponse)
-def crop_recommendation(data: CropRecommendationRequest):
+def crop_recommendation(data: CropRecommendationRequest, user=Depends(verify_firebase_token)):
 
     try:
 
@@ -137,3 +179,9 @@ def crop_recommendation(data: CropRecommendationRequest):
             status_code=500,
             detail=str(e)
         )
+
+
+@app.get("/api/profile")
+def profile(user=Depends(verify_firebase_token)):
+    # Returns basic token claims for the authenticated user
+    return {"uid": user.get('uid'), "email": user.get('email'), "name": user.get('name')}

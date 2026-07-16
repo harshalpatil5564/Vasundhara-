@@ -92,29 +92,49 @@ footer{
 
 <body>
 
-<!-- Navbar -->
 <header class="navbar">
-<div class="container nav-inner">
+    <div class="container nav-inner">
+        <a class="logo" href="index.html">
+            <div class="logo-icon">🌾</div>
+            <div class="logo-text">
+                <h2>Maharashtra Agriculture</h2>
+                <p>Smart Farming Portal</p>
+            </div>
+        </a>
 
-<div class="logo">
-🌾 AgriGuard Maharashtra
-</div>
+        <nav class="nav-links">
+            <a href="index.html">🏠 Dashboard</a>
+            <a href="market.html" class="active">📈 Market</a>
+            <a href="weather.html">🌦 Weather</a>
+            <a href="disease.html">🌿 Disease</a>
+            <a href="predictions.html">🔮 Predictions</a>
+            <a href="equipment.html">🛠 Equipment</a>
+        </nav>
 
-<nav class="nav-links">
-<a href="index.html">Dashboard</a>
-<a href="market.html" class="active">Market</a>
-<a href="weather.html">Weather</a>
-<a href="news.html">News</a>
-<a href="disease.html">Disease</a>
-</nav>
-
-</div>
+        <div class="nav-right">
+            <select class="lang-select" id="languageSelect" onchange="changePageLanguage(this.value)">
+                <option value="en">English</option>
+                <option value="mr">मराठी</option>
+                <option value="hi">हिंदी</option>
+            </select>
+            <div id="userArea">
+              <button class="btn btn-primary" id="loginBtn" onclick="openLoginModal()">👤 Login</button>
+            </div>
+        </div>
+    </div>
 </header>
 
 <!-- Hero -->
 <section class="page-header">
-<h1>📈 Maharashtra Bajar Bhav</h1>
-<p>Live Mandi Rates Across Maharashtra</p>
+    <div style="max-width:1100px;margin:auto;display:flex;flex-direction:column;gap:12px;align-items:center;">
+        <h1>📈 Maharashtra Mandi Rates</h1>
+        <p>Live, district-wise market prices to help plan harvest and sales.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button onclick="loadMarketData()" class="btn btn-primary">🔄 Refresh Rates</button>
+            <a href="index.html" class="btn btn-ghost">🏠 Dashboard</a>
+            <a href="predictions.html" class="btn btn-outline">🔮 Predictions</a>
+        </div>
+    </div>
 </section>
 
 <div class="market-container">
@@ -281,6 +301,15 @@ data:data.map(x=>x.price)
 loadMarketData();
 
 </script>
+
+</script>
+<script src="js/firebase-config.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+</body>
+</html>
+</body>
+</html>
 
 </body>
 </html>

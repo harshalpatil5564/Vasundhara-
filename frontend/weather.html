@@ -528,26 +528,33 @@
 
 <header class="navbar">
     <div class="container nav-inner">
-        <a class="brand" href="index.html">
-            <div class="brand-icon">🌾</div>
-            <div class="brand-text">
+        <a class="logo" href="index.html">
+            <div class="logo-icon">🌾</div>
+            <div class="logo-text">
                 <h2>Maharashtra Agriculture</h2>
-                <p>Smart Weather Dashboard</p>
+                <p>Smart Farming Portal</p>
             </div>
         </a>
 
         <nav class="nav-links">
-            <a href="index.html">Dashboard</a>
-            <a href="market.html">Market Prices</a>
-            <a href="weather.html" class="active">Weather</a>
-            <a href="news.html">News</a>
-            <a href="disease.html">Disease</a>
-            <a href="predictions.html">Predictions</a>
+            <a href="index.html">🏠 Dashboard</a>
+            <a href="market.html">📈 Market</a>
+            <a href="weather.html" class="active">🌦 Weather</a>
+            <a href="news.html">📰 News</a>
+            <a href="disease.html">🌿 Disease</a>
+            <a href="predictions.html">🔮 Predictions</a>
         </nav>
 
-        <div class="nav-actions">
-            <button class="btn btn-secondary" onclick="autoDetectLocation()">Auto Detect</button>
-            <button class="dot-menu-btn" onclick="toggleMenu()" aria-label="Menu">⋮</button>
+        <div class="nav-right">
+            <select class="lang-select" id="languageSelect" onchange="changePageLanguage(this.value)">
+                <option value="en">English</option>
+                <option value="mr">मराठी</option>
+                <option value="hi">हिंदी</option>
+            </select>
+            <div id="userArea">
+              <button class="btn btn-primary" onclick="openLoginModal()">👤 Login</button>
+            </div>
+            <button class="btn btn-primary" onclick="autoDetectLocation()">📍 Auto Detect</button>
         </div>
     </div>
 </header>
@@ -569,9 +576,14 @@
     <div class="weather-header">
         <h1>🌾 Maharashtra Smart Weather Dashboard</h1>
         <p>
-            Live weather intelligence for farmers. Select your district or use auto-detect to fetch current weather,
-            humidity, wind speed, rainfall, and 5-day forecast.
+            Live weather intelligence for farmers — current conditions, humidity, wind, rainfall and a 5‑day forecast.
         </p>
+
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="market.html" class="btn btn-ghost">📈 Market Prices</a>
+            <a href="disease.html" class="btn btn-ghost">🌿 Disease Scan</a>
+            <button class="btn btn-primary" onclick="autoDetectLocation()">📍 Auto Detect</button>
+        </div>
 
         <div class="weather-search">
             <select id="districtSelect">
@@ -876,6 +888,10 @@
         getWeather();
     };
 </script>
+
+<script src="js/firebase-config.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script src="js/nav.js"></script>
 
 </body>
 </html>
